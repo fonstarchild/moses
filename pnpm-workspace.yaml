@@ -5,3 +5,158 @@ allowBuilds:
   '@vscode/vsce-sign': false
   esbuild: false
   keytar: false
+rror[E0599]: no method named `set_enable_webgl` found for struct `webkit2gtk::Settings` in the current scope
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wry-0.24.11/src/webview/webkitgtk/mod.rs:278:16
+     |
+ 278 |       settings.set_enable_webgl(true);
+     |                ^^^^^^^^^^^^^^^^
+     |
+    ::: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:1222:6
+     |
+1222 |   fn set_enable_webgl(&self, enabled: bool);
+     |      ---------------- the method is available for `webkit2gtk::Settings` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: there is a method `enables_webgl` with a similar name, but with different arguments
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:992:3
+     |
+ 992 |   fn enables_webgl(&self) -> bool;
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: trait `SettingsExt` which provides `set_enable_webgl` is implemented but not in scope; perhaps you want to import it
+     |
+   5 + use webkit2gtk::SettingsExt;
+     |
+
+error[E0599]: no method named `set_enable_webaudio` found for struct `webkit2gtk::Settings` in the current scope
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wry-0.24.11/src/webview/webkitgtk/mod.rs:279:16
+     |
+ 279 |       settings.set_enable_webaudio(true);
+     |                ^^^^^^^^^^^^^^^^^^^
+     |
+    ::: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:1219:6
+     |
+1219 |   fn set_enable_webaudio(&self, enabled: bool);
+     |      ------------------- the method is available for `webkit2gtk::Settings` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: there is a method `enables_webaudio` with a similar name, but with different arguments
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:988:3
+     |
+ 988 |   fn enables_webaudio(&self) -> bool;
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: trait `SettingsExt` which provides `set_enable_webaudio` is implemented but not in scope; perhaps you want to import it
+     |
+   5 + use webkit2gtk::SettingsExt;
+     |
+
+error[E0599]: no method named `set_javascript_can_access_clipboard` found for struct `webkit2gtk::Settings` in the current scope
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wry-0.24.11/src/webview/webkitgtk/mod.rs:283:18
+     |
+ 283 |         settings.set_javascript_can_access_clipboard(true);
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+    ::: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:1241:6
+     |
+1241 |   fn set_javascript_can_access_clipboard(&self, enabled: bool);
+     |      ----------------------------------- the method is available for `webkit2gtk::Settings` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: there is a method `is_javascript_can_access_clipboard` with a similar name, but with different arguments
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:1016:3
+     |
+1016 |   fn is_javascript_can_access_clipboard(&self) -> bool;
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: trait `SettingsExt` which provides `set_javascript_can_access_clipboard` is implemented but not in scope; perhaps you want to import it
+     |
+   5 + use webkit2gtk::SettingsExt;
+     |
+
+error[E0599]: no method named `set_enable_offline_web_application_cache` found for struct `webkit2gtk::Settings` in the current scope
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wry-0.24.11/src/webview/webkitgtk/mod.rs:287:16
+     |
+ 287 |       settings.set_enable_offline_web_application_cache(true);
+     |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+    ::: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:1188:6
+     |
+1188 |   fn set_enable_offline_web_application_cache(&self, enabled: bool);
+     |      ---------------------------------------- the method is available for `webkit2gtk::Settings` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: there is a method `enables_offline_web_application_cache` with a similar name, but with different arguments
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:948:3
+     |
+ 948 |   fn enables_offline_web_application_cache(&self) -> bool;
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: trait `SettingsExt` which provides `set_enable_offline_web_application_cache` is implemented but not in scope; perhaps you want to import it
+     |
+   5 + use webkit2gtk::SettingsExt;
+     |
+
+error[E0599]: no method named `set_enable_page_cache` found for struct `webkit2gtk::Settings` in the current scope
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wry-0.24.11/src/webview/webkitgtk/mod.rs:288:16
+     |
+ 288 |       settings.set_enable_page_cache(true);
+     |                ^^^^^^^^^^^^^^^^^^^^^
+     |
+    ::: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:1191:6
+     |
+1191 |   fn set_enable_page_cache(&self, enabled: bool);
+     |      --------------------- the method is available for `webkit2gtk::Settings` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: there is a method `enables_page_cache` with a similar name, but with different arguments
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:952:3
+     |
+ 952 |   fn enables_page_cache(&self) -> bool;
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: trait `SettingsExt` which provides `set_enable_page_cache` is implemented but not in scope; perhaps you want to import it
+     |
+   5 + use webkit2gtk::SettingsExt;
+     |
+
+error[E0599]: no method named `set_user_agent` found for struct `webkit2gtk::Settings` in the current scope
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wry-0.24.11/src/webview/webkitgtk/mod.rs:291:16
+     |
+ 291 |       settings.set_user_agent(attributes.user_agent.as_deref());
+     |                ^^^^^^^^^^^^^^
+     |
+    ::: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:1279:6
+     |
+1279 |   fn set_user_agent(&self, user_agent: Option<&str>);
+     |      -------------- the method is available for `webkit2gtk::Settings` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: there is a method `user_agent` with a similar name, but with different arguments
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:1066:3
+     |
+1066 |   fn user_agent(&self) -> Option<glib::GString>;
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: trait `SettingsExt` which provides `set_user_agent` is implemented but not in scope; perhaps you want to import it
+     |
+   5 + use webkit2gtk::SettingsExt;
+     |
+
+error[E0599]: no method named `set_enable_developer_extras` found for struct `webkit2gtk::Settings` in the current scope
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wry-0.24.11/src/webview/webkitgtk/mod.rs:294:18
+     |
+ 294 |         settings.set_enable_developer_extras(true);
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+     |
+    ::: /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:1126:6
+     |
+1126 |   fn set_enable_developer_extras(&self, enabled: bool);
+     |      --------------------------- the method is available for `webkit2gtk::Settings` here
+     |
+     = help: items from traits can only be used if the trait is in scope
+help: there is a method `enables_developer_extras` with a similar name, but with different arguments
+    --> /home/runner/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/webkit2gtk-0.18.2/src/auto/settings.rs:870:3
+     |
+ 870 |   fn enables_developer_extras(&self) -> bool;
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: trait `SettingsExt` which provides `set_enable_developer_extras` is implemented but not in scope; perhaps you want to import it
+     |
+   5 + use webkit2gtk::SettingsExt;
+     |
+
+For more information about this error, try `rustc --explain E0599`.
