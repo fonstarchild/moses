@@ -1,18 +1,25 @@
+use futures_util::{SinkExt, StreamExt};
+use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::Arc;
+use tauri::{AppHandle, Manager};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::broadcast;
 use tokio_tungstenite::accept_async;
 use tokio_tungstenite::tungstenite::Message;
-use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum BridgeIn {
-    Prompt { text: String, workspace: String, open_files: Vec<String>, mode: Option<String> },
-    AcceptPatch { diff: String },
+    Prompt {
+        text: String,
+        workspace: String,
+        open_files: Vec<String>,
+        mode: Option<String>,
+    },
+    AcceptPatch {
+        diff: String,
+    },
     RejectPatch,
     Cancel,
     Ping,
@@ -35,7 +42,10 @@ pub async fn start_bridge(port: u16, app: AppHandle) -> Result<(), anyhow::Error
     let listener = match TcpListener::bind(addr).await {
         Ok(l) => l,
         Err(e) => {
-            eprintln!("Moses WS bridge: port {} unavailable ({}), skipping bridge", port, e);
+            eprintln!(
+                "Moses WS bridge: port {} unavailable ({}), skipping bridge",
+                port, e
+            );
             return Ok(()); // non-fatal — desktop app works fine without VSCode bridge
         }
     };
@@ -56,14 +66,19 @@ pub async fn start_bridge(port: u16, app: AppHandle) -> Result<(), anyhow::Error
                         content: v["token"].as_str().unwrap_or_default().to_string(),
                     }),
                     Some("PatchProposed") => {
-                        let files = v["files"].as_array()
-                            .map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+                        let files = v["files"]
+                            .as_array()
+                            .map(|a| {
+                                a.iter()
+                                    .filter_map(|x| x.as_str().map(String::from))
+                                    .collect()
+                            })
                             .unwrap_or_default();
                         Some(BridgeOut::PatchProposal {
                             diff: v["diff"].as_str().unwrap_or_default().to_string(),
                             files,
                         })
-                    },
+                    }
                     Some("ToolCall") => Some(BridgeOut::ToolActivity {
                         name: v["name"].as_str().unwrap_or_default().to_string(),
                         status: "running".to_string(),
@@ -112,7 +127,8 @@ async fn handle_client(
     // Send welcome
     let welcome = serde_json::to_string(&BridgeOut::Connected {
         version: "0.1.0".to_string(),
-    }).unwrap();
+    })
+    .unwrap();
     ws_tx.send(Message::Text(welcome)).await.ok();
 
     // Forward agent events → VSCode
@@ -133,7 +149,12 @@ async fn handle_client(
         if let Message::Text(text) = msg {
             if let Ok(bridge_msg) = serde_json::from_str::<BridgeIn>(&text) {
                 match bridge_msg {
-                    BridgeIn::Prompt { text, workspace, open_files, mode } => {
+                    BridgeIn::Prompt {
+                        text,
+                        workspace,
+                        open_files,
+                        mode,
+                    } => {
                         use crate::agent::task::AgentTask;
                         let task = AgentTask {
                             prompt: text,
@@ -143,9 +164,10 @@ async fn handle_client(
                         };
                         let app_clone = app.clone();
                         tokio::spawn(async move {
-                            use crate::llm::client::LlmClient;
                             use crate::agent::loop_::AgentLoop;
-                            let llm = LlmClient::new("http://localhost:11434", "deepseek-coder:6.7b");
+                            use crate::llm::client::LlmClient;
+                            let llm =
+                                LlmClient::new("http://localhost:11434", "deepseek-coder:6.7b");
                             let mut agent = AgentLoop::new(llm, app_clone);
                             agent.run(task).await.ok();
                         });

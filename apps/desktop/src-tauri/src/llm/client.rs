@@ -1,8 +1,8 @@
+use crate::memory::short_term::ChatMessage;
 use futures_util::StreamExt;
 use reqwest::Client;
 use serde::Deserialize;
 use serde_json::{json, Value};
-use crate::memory::short_term::ChatMessage;
 
 pub struct LlmClient {
     client: Client,
@@ -42,7 +42,9 @@ impl LlmClient {
         let system_with_tools = build_system_with_tools(system, tools);
 
         // Stream the response, collecting full text
-        let text = self.stream_text(&system_with_tools, messages, on_token).await?;
+        let text = self
+            .stream_text(&system_with_tools, messages, on_token)
+            .await?;
 
         // Check if the model emitted a tool call block
         if let Some(tc) = parse_tool_call(&text) {
@@ -73,7 +75,8 @@ impl LlmClient {
             }
         });
 
-        let response = self.client
+        let response = self
+            .client
             .post(format!("{}/api/chat", self.base_url))
             .json(&body)
             .send()
@@ -96,7 +99,9 @@ impl LlmClient {
             while let Some(pos) = buf.find('\n') {
                 let line = buf[..pos].trim().to_string();
                 buf = buf[pos + 1..].to_string();
-                if line.is_empty() { continue; }
+                if line.is_empty() {
+                    continue;
+                }
 
                 if let Ok(event) = serde_json::from_str::<StreamEvent>(&line) {
                     let token = strip_special_tokens(event.message.content);
@@ -120,7 +125,8 @@ impl LlmClient {
             "prompt": text,
         });
 
-        let resp = self.client
+        let resp = self
+            .client
             .post(format!("{}/api/embeddings", self.base_url))
             .json(&body)
             .send()
@@ -133,11 +139,16 @@ impl LlmClient {
 
     pub async fn list_models(&self) -> Result<Vec<String>, anyhow::Error> {
         #[derive(Deserialize)]
-        struct TagsResponse { models: Vec<ModelEntry> }
+        struct TagsResponse {
+            models: Vec<ModelEntry>,
+        }
         #[derive(Deserialize)]
-        struct ModelEntry { name: String }
+        struct ModelEntry {
+            name: String,
+        }
 
-        let resp = self.client
+        let resp = self
+            .client
             .get(format!("{}/api/tags", self.base_url))
             .send()
             .await?
@@ -154,12 +165,15 @@ fn build_system_with_tools(system: &str, tools: &[Value]) -> String {
         return system.to_string();
     }
 
-    let tools_desc: Vec<String> = tools.iter().map(|t| {
-        let name = t["function"]["name"].as_str().unwrap_or("unknown");
-        let desc = t["function"]["description"].as_str().unwrap_or("");
-        let params = &t["function"]["parameters"];
-        format!("- {}: {}\n  Parameters: {}", name, desc, params)
-    }).collect();
+    let tools_desc: Vec<String> = tools
+        .iter()
+        .map(|t| {
+            let name = t["function"]["name"].as_str().unwrap_or("unknown");
+            let desc = t["function"]["description"].as_str().unwrap_or("");
+            let params = &t["function"]["parameters"];
+            format!("- {}: {}\n  Parameters: {}", name, desc, params)
+        })
+        .collect();
 
     format!(
         "{}\n\n## Available Tools\nYou can call tools by emitting EXACTLY this format (nothing before or after on the same line):\n<tool_call>{{\"name\": \"tool_name\", \"args\": {{...}}}}</tool_call>\n\nTools:\n{}\n\nOnly call ONE tool at a time. After receiving the result, continue reasoning.",

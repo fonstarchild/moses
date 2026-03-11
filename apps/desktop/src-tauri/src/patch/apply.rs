@@ -1,6 +1,6 @@
-use std::path::PathBuf;
+use anyhow::{anyhow, Context, Result};
 use std::collections::HashMap;
-use anyhow::{Context, Result, anyhow};
+use std::path::PathBuf;
 
 pub struct PatchEngine {
     workspace_root: PathBuf,
@@ -8,7 +8,9 @@ pub struct PatchEngine {
 
 impl PatchEngine {
     pub fn new(workspace_root: &str) -> Self {
-        Self { workspace_root: PathBuf::from(workspace_root) }
+        Self {
+            workspace_root: PathBuf::from(workspace_root),
+        }
     }
 
     pub async fn apply(&self, diff: &str) -> Result<Vec<String>> {
@@ -59,12 +61,16 @@ fn parse_unified_diff(diff: &str) -> Result<HashMap<String, Vec<Hunk>>> {
     for line in diff.lines() {
         if let Some(rest) = line.strip_prefix("+++ b/") {
             if let Some(f) = current_file.take() {
-                if let Some(h) = current_hunk.take() { current_hunks.push(h); }
+                if let Some(h) = current_hunk.take() {
+                    current_hunks.push(h);
+                }
                 files.insert(f, std::mem::take(&mut current_hunks));
             }
             current_file = Some(rest.to_string());
         } else if line.starts_with("@@ ") {
-            if let Some(h) = current_hunk.take() { current_hunks.push(h); }
+            if let Some(h) = current_hunk.take() {
+                current_hunks.push(h);
+            }
             if let Ok(hunk) = parse_hunk_header(line) {
                 current_hunk = Some(hunk);
             }
@@ -80,7 +86,9 @@ fn parse_unified_diff(diff: &str) -> Result<HashMap<String, Vec<Hunk>>> {
     }
 
     if let Some(f) = current_file {
-        if let Some(h) = current_hunk { current_hunks.push(h); }
+        if let Some(h) = current_hunk {
+            current_hunks.push(h);
+        }
         files.insert(f, current_hunks);
     }
 
@@ -89,17 +97,25 @@ fn parse_unified_diff(diff: &str) -> Result<HashMap<String, Vec<Hunk>>> {
 
 fn parse_hunk_header(line: &str) -> Result<Hunk> {
     // @@ -old_start,old_count +new_start,new_count @@
-    let inner = line.trim_start_matches("@@ ").trim_end_matches(" @@").trim_end();
+    let inner = line
+        .trim_start_matches("@@ ")
+        .trim_end_matches(" @@")
+        .trim_end();
     let parts: Vec<&str> = inner.split(' ').collect();
     if parts.len() < 2 {
         return Err(anyhow!("Invalid hunk header: {}", line));
     }
     let old_part = parts[0].trim_start_matches('-');
-    let old_start: usize = old_part.split(',').next()
+    let old_start: usize = old_part
+        .split(',')
+        .next()
         .and_then(|s| s.parse().ok())
         .unwrap_or(1);
 
-    Ok(Hunk { old_start, lines: vec![] })
+    Ok(Hunk {
+        old_start,
+        lines: vec![],
+    })
 }
 
 fn apply_hunks(original: &str, hunks: &[Hunk]) -> Result<String> {

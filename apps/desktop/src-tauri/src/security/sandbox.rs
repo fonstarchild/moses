@@ -1,7 +1,7 @@
+use crate::agent::tools::ToolResult;
 use std::path::PathBuf;
 use tokio::process::Command;
 use tokio::time::{timeout, Duration};
-use crate::agent::tools::ToolResult;
 
 const BLOCKED: &[&str] = &[
     "rm -rf /",
@@ -17,7 +17,9 @@ pub struct Sandbox {
 
 impl Sandbox {
     pub fn new(workspace_root: &str) -> Self {
-        Self { workspace_root: PathBuf::from(workspace_root) }
+        Self {
+            workspace_root: PathBuf::from(workspace_root),
+        }
     }
 
     pub async fn run(&self, cmd: &str, timeout_secs: u64) -> Result<ToolResult, anyhow::Error> {
@@ -33,8 +35,9 @@ impl Sandbox {
                 .arg("-c")
                 .arg(cmd)
                 .current_dir(&self.workspace_root)
-                .output()
-        ).await;
+                .output(),
+        )
+        .await;
 
         match result {
             Ok(Ok(output)) => {
@@ -47,7 +50,10 @@ impl Sandbox {
                 Ok(ToolResult::ok(combined))
             }
             Ok(Err(e)) => Ok(ToolResult::err(e.to_string())),
-            Err(_) => Ok(ToolResult::err(format!("Timed out after {}s", timeout_secs))),
+            Err(_) => Ok(ToolResult::err(format!(
+                "Timed out after {}s",
+                timeout_secs
+            ))),
         }
     }
 }

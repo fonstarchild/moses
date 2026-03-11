@@ -1,53 +1,69 @@
+use serde::{Deserialize, Serialize};
 /// Automatic setup — runs on app launch.
 /// Ensures Ollama is installed, running, and has at least one model.
 /// Emits "setup-progress" events to the frontend throughout.
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tauri::{AppHandle, Manager};
-use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SetupProgress {
-    pub step: String,       // human-readable current step
-    pub detail: String,     // sub-detail or progress line
-    pub done: bool,         // true = setup complete
+    pub step: String,   // human-readable current step
+    pub detail: String, // sub-detail or progress line
+    pub done: bool,     // true = setup complete
     pub error: Option<String>,
 }
 
 impl SetupProgress {
     fn emit(app: &AppHandle, step: &str, detail: &str) {
-        app.emit_all("setup-progress", Self {
-            step: step.into(),
-            detail: detail.into(),
-            done: false,
-            error: None,
-        }).ok();
+        app.emit_all(
+            "setup-progress",
+            Self {
+                step: step.into(),
+                detail: detail.into(),
+                done: false,
+                error: None,
+            },
+        )
+        .ok();
     }
 
     fn complete(app: &AppHandle) {
-        app.emit_all("setup-progress", Self {
-            step: "Ready".into(),
-            detail: "Moses is ready".into(),
-            done: true,
-            error: None,
-        }).ok();
+        app.emit_all(
+            "setup-progress",
+            Self {
+                step: "Ready".into(),
+                detail: "Moses is ready".into(),
+                done: true,
+                error: None,
+            },
+        )
+        .ok();
     }
 
     fn fail(app: &AppHandle, step: &str, err: &str) {
-        app.emit_all("setup-progress", Self {
-            step: step.into(),
-            detail: String::new(),
-            done: false,
-            error: Some(err.into()),
-        }).ok();
+        app.emit_all(
+            "setup-progress",
+            Self {
+                step: step.into(),
+                detail: String::new(),
+                done: false,
+                error: Some(err.into()),
+            },
+        )
+        .ok();
     }
 }
 
 /// Entry point — call this from main `setup` closure.
 pub async fn run(app: AppHandle) {
     // Step 1: ensure Ollama binary exists
-    SetupProgress::emit(&app, "Checking Ollama", "Looking for Ollama on your system…");
+    SetupProgress::emit(
+        &app,
+        "Checking Ollama",
+        "Looking for Ollama on your system…",
+    );
     let ollama = match find_or_install_ollama(&app).await {
         Ok(p) => p,
         Err(e) => {
@@ -80,12 +96,18 @@ pub async fn run(app: AppHandle) {
 // ── Ollama location ────────────────────────────────────────────────────────────
 
 fn ollama_bin_name() -> &'static str {
-    if cfg!(target_os = "windows") { "ollama.exe" } else { "ollama" }
+    if cfg!(target_os = "windows") {
+        "ollama.exe"
+    } else {
+        "ollama"
+    }
 }
 
 async fn find_or_install_ollama(app: &AppHandle) -> anyhow::Result<PathBuf> {
     // Our own downloaded copy takes priority
-    let our_bin = crate::settings::moses_data_dir().join("bin").join(ollama_bin_name());
+    let our_bin = crate::settings::moses_data_dir()
+        .join("bin")
+        .join(ollama_bin_name());
     if our_bin.exists() {
         return Ok(our_bin);
     }
@@ -104,10 +126,7 @@ async fn find_or_install_ollama(app: &AppHandle) -> anyhow::Result<PathBuf> {
         "/Applications/Ollama.app/Contents/Resources/ollama",
     ];
     #[cfg(target_os = "linux")]
-    let candidates: &[&str] = &[
-        "/usr/local/bin/ollama",
-        "/usr/bin/ollama",
-    ];
+    let candidates: &[&str] = &["/usr/local/bin/ollama", "/usr/bin/ollama"];
 
     for c in candidates {
         if Path::new(c).exists() {
@@ -134,7 +153,11 @@ async fn find_or_install_ollama(app: &AppHandle) -> anyhow::Result<PathBuf> {
     }
 
     // Not found — download it
-    SetupProgress::emit(app, "Installing Ollama", "Downloading Ollama (one-time setup)…");
+    SetupProgress::emit(
+        app,
+        "Installing Ollama",
+        "Downloading Ollama (one-time setup)…",
+    );
     install_ollama(app).await
 }
 
@@ -158,7 +181,11 @@ async fn install_ollama(app: &AppHandle) -> anyhow::Result<PathBuf> {
     #[cfg(target_os = "windows")]
     let url = "https://github.com/ollama/ollama/releases/latest/download/ollama-windows-amd64.exe";
 
-    SetupProgress::emit(app, "Installing Ollama", &format!("Downloading from {url}…"));
+    SetupProgress::emit(
+        app,
+        "Installing Ollama",
+        &format!("Downloading from {url}…"),
+    );
 
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(300))
@@ -232,17 +259,26 @@ async fn ensure_model(app: &AppHandle, ollama: &Path) -> anyhow::Result<()> {
 
     // Check if any preferred model is already present
     let has_preferred = installed.iter().any(|m| {
-        PREFERRED_MODELS.iter().any(|p| m.starts_with(p) || p.starts_with(m.as_str()))
+        PREFERRED_MODELS
+            .iter()
+            .any(|p| m.starts_with(p) || p.starts_with(m.as_str()))
     });
 
     if has_preferred {
-        SetupProgress::emit(app, "Checking models", &format!("Found: {}", installed.join(", ")));
+        SetupProgress::emit(
+            app,
+            "Checking models",
+            &format!("Found: {}", installed.join(", ")),
+        );
         return Ok(());
     }
 
     // Nothing installed — pull the default
-    SetupProgress::emit(app, "Downloading model",
-        &format!("Pulling {DEFAULT_MODEL} (~3.8 GB, one-time download)…"));
+    SetupProgress::emit(
+        app,
+        "Downloading model",
+        &format!("Pulling {DEFAULT_MODEL} (~3.8 GB, one-time download)…"),
+    );
 
     pull_model_streaming(app, ollama, DEFAULT_MODEL, "AI model").await
 }
@@ -284,22 +320,25 @@ async fn pull_model_streaming(
         while let Some(pos) = buf.find('\n') {
             let line = buf[..pos].trim().to_string();
             buf = buf[pos + 1..].to_string();
-            if line.is_empty() { continue; }
+            if line.is_empty() {
+                continue;
+            }
 
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(&line) {
                 let status = v["status"].as_str().unwrap_or("").to_string();
-                let detail = if let (Some(c), Some(t)) = (v["completed"].as_u64(), v["total"].as_u64()) {
-                    if t > 0 {
-                        let pct = (c as f64 / t as f64 * 100.0) as u64;
-                        let mb_done = c / 1_048_576;
-                        let mb_total = t / 1_048_576;
-                        format!("{status} — {pct}% ({mb_done} / {mb_total} MB)")
+                let detail =
+                    if let (Some(c), Some(t)) = (v["completed"].as_u64(), v["total"].as_u64()) {
+                        if t > 0 {
+                            let pct = (c as f64 / t as f64 * 100.0) as u64;
+                            let mb_done = c / 1_048_576;
+                            let mb_total = t / 1_048_576;
+                            format!("{status} — {pct}% ({mb_done} / {mb_total} MB)")
+                        } else {
+                            status
+                        }
                     } else {
                         status
-                    }
-                } else {
-                    status
-                };
+                    };
 
                 SetupProgress::emit(app, &format!("Downloading {label}"), &detail);
             }
@@ -311,18 +350,25 @@ async fn pull_model_streaming(
 
 async fn list_installed_models() -> Vec<String> {
     #[derive(Deserialize)]
-    struct TagsResp { models: Vec<ModelEntry> }
+    struct TagsResp {
+        models: Vec<ModelEntry>,
+    }
     #[derive(Deserialize)]
-    struct ModelEntry { name: String }
+    struct ModelEntry {
+        name: String,
+    }
 
     let Ok(resp) = reqwest::Client::new()
         .get("http://localhost:11434/api/tags")
         .timeout(Duration::from_secs(5))
         .send()
-        .await else { return vec![]; };
+        .await
+    else {
+        return vec![];
+    };
 
-    resp.json::<TagsResp>().await
+    resp.json::<TagsResp>()
+        .await
         .map(|r| r.models.into_iter().map(|m| m.name).collect())
         .unwrap_or_default()
 }
-

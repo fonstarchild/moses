@@ -1,16 +1,23 @@
+use crate::workspace::vector_store::{CodeChunk, VectorStore};
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
-use crate::workspace::vector_store::{VectorStore, CodeChunk};
 
 const IGNORED_DIRS: &[&str] = &[
-    ".git", "node_modules", "target", "__pycache__",
-    ".next", "dist", "build", ".venv", "venv", ".moses",
+    ".git",
+    "node_modules",
+    "target",
+    "__pycache__",
+    ".next",
+    "dist",
+    "build",
+    ".venv",
+    "venv",
+    ".moses",
 ];
 
 const SUPPORTED_EXTS: &[&str] = &[
-    "rs", "ts", "tsx", "js", "jsx", "py", "go",
-    "java", "cpp", "c", "h", "cs", "rb", "swift",
-    "kt", "md", "toml", "yaml", "json", "sh",
+    "rs", "ts", "tsx", "js", "jsx", "py", "go", "java", "cpp", "c", "h", "cs", "rb", "swift", "kt",
+    "md", "toml", "yaml", "json", "sh",
 ];
 
 pub struct WorkspaceIndexer {
@@ -19,7 +26,9 @@ pub struct WorkspaceIndexer {
 
 impl WorkspaceIndexer {
     pub fn new(root: &str) -> Self {
-        Self { root: PathBuf::from(root) }
+        Self {
+            root: PathBuf::from(root),
+        }
     }
 
     pub async fn index_all(&self, store: &mut VectorStore) -> Result<usize, anyhow::Error> {
@@ -39,7 +48,11 @@ impl WorkspaceIndexer {
         Ok(total)
     }
 
-    pub async fn index_file(&self, path: &Path, store: &mut VectorStore) -> Result<usize, anyhow::Error> {
+    pub async fn index_file(
+        &self,
+        path: &Path,
+        store: &mut VectorStore,
+    ) -> Result<usize, anyhow::Error> {
         let rel = path.strip_prefix(&self.root)?.to_string_lossy().to_string();
         store.clear_file(&rel)?;
         let chunks = self.chunk_file(path).await?;
@@ -51,7 +64,8 @@ impl WorkspaceIndexer {
     }
 
     async fn chunk_file(&self, path: &Path) -> Result<Vec<CodeChunk>, anyhow::Error> {
-        let rel = path.strip_prefix(&self.root)
+        let rel = path
+            .strip_prefix(&self.root)
             .unwrap_or(path)
             .to_string_lossy()
             .to_string();
@@ -60,10 +74,8 @@ impl WorkspaceIndexer {
         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
 
         let chunks = match ext {
-            "rs" | "ts" | "tsx" | "js" | "jsx" | "py" | "go" |
-            "java" | "cpp" | "c" | "cs" | "swift" | "kt" => {
-                chunk_by_declarations(&content, &rel)
-            }
+            "rs" | "ts" | "tsx" | "js" | "jsx" | "py" | "go" | "java" | "cpp" | "c" | "cs"
+            | "swift" | "kt" => chunk_by_declarations(&content, &rel),
             _ => chunk_by_lines(&content, &rel, 60),
         };
 
@@ -74,13 +86,12 @@ impl WorkspaceIndexer {
         WalkDir::new(&self.root)
             .follow_links(false)
             .into_iter()
-            .filter_entry(|e| {
-                !IGNORED_DIRS.contains(&e.file_name().to_str().unwrap_or(""))
-            })
+            .filter_entry(|e| !IGNORED_DIRS.contains(&e.file_name().to_str().unwrap_or("")))
             .filter_map(|e| e.ok())
             .filter(|e| e.file_type().is_file())
             .filter(|e| {
-                e.path().extension()
+                e.path()
+                    .extension()
                     .and_then(|x| x.to_str())
                     .map(|x| SUPPORTED_EXTS.contains(&x))
                     .unwrap_or(false)
@@ -94,15 +105,30 @@ impl WorkspaceIndexer {
 fn chunk_by_declarations(content: &str, file: &str) -> Vec<CodeChunk> {
     // Patterns that start a new logical chunk
     let declaration_patterns = [
-        "fn ", "pub fn ", "async fn ", "pub async fn ",
-        "impl ", "pub impl ",
-        "struct ", "pub struct ",
-        "enum ", "pub enum ",
-        "trait ", "pub trait ",
-        "class ", "def ", "func ", "function ",
-        "export function ", "export const ", "export default ",
-        "export class ", "export interface ",
-        "interface ", "type ", "mod ",
+        "fn ",
+        "pub fn ",
+        "async fn ",
+        "pub async fn ",
+        "impl ",
+        "pub impl ",
+        "struct ",
+        "pub struct ",
+        "enum ",
+        "pub enum ",
+        "trait ",
+        "pub trait ",
+        "class ",
+        "def ",
+        "func ",
+        "function ",
+        "export function ",
+        "export const ",
+        "export default ",
+        "export class ",
+        "export interface ",
+        "interface ",
+        "type ",
+        "mod ",
     ];
 
     let lines: Vec<&str> = content.lines().collect();
@@ -131,9 +157,16 @@ fn chunk_by_declarations(content: &str, file: &str) -> Vec<CodeChunk> {
             chunk_start = i;
             chunk_lines = vec![line];
             // detect kind
-            chunk_kind = if trimmed.contains("fn ") || trimmed.contains("function") || trimmed.contains("def ") || trimmed.contains("func ") {
+            chunk_kind = if trimmed.contains("fn ")
+                || trimmed.contains("function")
+                || trimmed.contains("def ")
+                || trimmed.contains("func ")
+            {
                 "function"
-            } else if trimmed.contains("struct ") || trimmed.contains("class ") || trimmed.contains("interface ") {
+            } else if trimmed.contains("struct ")
+                || trimmed.contains("class ")
+                || trimmed.contains("interface ")
+            {
                 "type"
             } else if trimmed.contains("impl ") || trimmed.contains("trait ") {
                 "impl"

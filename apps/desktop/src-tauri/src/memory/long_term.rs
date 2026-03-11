@@ -1,5 +1,5 @@
-use rusqlite::{Connection, params};
 use anyhow::Result;
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,7 +19,8 @@ impl LongTermMemory {
         let path = format!("{}/.moses/memory.db", workspace_root);
         let conn = Connection::open(&path)?;
 
-        conn.execute_batch("
+        conn.execute_batch(
+            "
             CREATE TABLE IF NOT EXISTS facts (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL,
@@ -34,7 +35,8 @@ impl LongTermMemory {
             );
             CREATE INDEX IF NOT EXISTS idx_facts_cat ON facts(category);
             CREATE INDEX IF NOT EXISTS idx_summaries_scope ON summaries(scope);
-        ")?;
+        ",
+        )?;
 
         Ok(Self { conn })
     }
@@ -49,9 +51,9 @@ impl LongTermMemory {
     }
 
     pub fn get_fact(&self, key: &str) -> Result<Option<String>> {
-        let mut stmt = self.conn.prepare(
-            "SELECT value FROM facts WHERE key = ?1"
-        )?;
+        let mut stmt = self
+            .conn
+            .prepare("SELECT value FROM facts WHERE key = ?1")?;
         let mut rows = stmt.query(params![key])?;
         if let Some(row) = rows.next()? {
             Ok(Some(row.get(0)?))
@@ -64,15 +66,16 @@ impl LongTermMemory {
         let mut stmt = self.conn.prepare(
             "SELECT key, value, category FROM facts WHERE category = ?1 ORDER BY updated_at DESC LIMIT 50"
         )?;
-        let facts = stmt.query_map(params![category], |row| {
-            Ok(ProjectFact {
-                key: row.get(0)?,
-                value: row.get(1)?,
-                category: row.get(2)?,
-            })
-        })?
-        .filter_map(|r| r.ok())
-        .collect();
+        let facts = stmt
+            .query_map(params![category], |row| {
+                Ok(ProjectFact {
+                    key: row.get(0)?,
+                    value: row.get(1)?,
+                    category: row.get(2)?,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
         Ok(facts)
     }
 
@@ -87,7 +90,7 @@ impl LongTermMemory {
     pub fn get_latest_summary(&self, scope: &str) -> Result<Option<String>> {
         let mut stmt = self.conn.prepare(
             "SELECT content FROM summaries WHERE scope = ?1
-             ORDER BY created_at DESC LIMIT 1"
+             ORDER BY created_at DESC LIMIT 1",
         )?;
         let mut rows = stmt.query(params![scope])?;
         if let Some(row) = rows.next()? {

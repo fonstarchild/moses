@@ -1,10 +1,10 @@
+use crate::patch::apply::PatchEngine;
+use crate::security::sandbox::Sandbox;
+use crate::workspace::vector_store::VectorStore;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 use tokio::process::Command;
-use crate::patch::apply::PatchEngine;
-use crate::security::sandbox::Sandbox;
-use crate::workspace::vector_store::VectorStore;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ToolResult {
@@ -18,14 +18,29 @@ pub struct ToolResult {
 
 impl ToolResult {
     pub fn ok(output: impl Into<String>) -> Self {
-        Self { success: true, output: output.into(), error: None, written_path: None }
+        Self {
+            success: true,
+            output: output.into(),
+            error: None,
+            written_path: None,
+        }
     }
     pub fn err(e: impl Into<String>) -> Self {
-        Self { success: false, output: String::new(), error: Some(e.into()), written_path: None }
+        Self {
+            success: false,
+            output: String::new(),
+            error: Some(e.into()),
+            written_path: None,
+        }
     }
     pub fn written(output: impl Into<String>, path: impl Into<String>) -> Self {
         let p = path.into();
-        Self { success: true, output: output.into(), error: None, written_path: Some(p) }
+        Self {
+            success: true,
+            output: output.into(),
+            error: None,
+            written_path: Some(p),
+        }
     }
 }
 
@@ -155,7 +170,11 @@ pub async fn execute_tool(
                 Ok(content) => {
                     // Cap at 20k chars
                     let capped: String = content.chars().take(20_000).collect();
-                    let note = if content.len() > 20_000 { "\n[...truncated at 20k chars]" } else { "" };
+                    let note = if content.len() > 20_000 {
+                        "\n[...truncated at 20k chars]"
+                    } else {
+                        ""
+                    };
                     Ok(ToolResult::ok(format!("{}{}", capped, note)))
                 }
                 Err(e) => Ok(ToolResult::err(e.to_string())),
@@ -184,7 +203,9 @@ pub async fn execute_tool(
             if let Ok(mut dir) = tokio::fs::read_dir(&full).await {
                 while let Ok(Some(entry)) = dir.next_entry().await {
                     let name = entry.file_name().to_string_lossy().to_string();
-                    if name.starts_with('.') { continue; }
+                    if name.starts_with('.') {
+                        continue;
+                    }
                     let is_dir = entry.file_type().await.map(|t| t.is_dir()).unwrap_or(false);
                     entries.push(if is_dir { format!("{}/", name) } else { name });
                 }
@@ -199,9 +220,11 @@ pub async fn execute_tool(
             match VectorStore::open(workspace_root) {
                 Ok(store) => match store.search(query, top_k) {
                     Ok(results) if !results.is_empty() => {
-                        let text = results.iter().map(|r| {
-                            format!("{}:{}\n{}", r.file, r.line, r.snippet)
-                        }).collect::<Vec<_>>().join("\n---\n");
+                        let text = results
+                            .iter()
+                            .map(|r| format!("{}:{}\n{}", r.file, r.line, r.snippet))
+                            .collect::<Vec<_>>()
+                            .join("\n---\n");
                         Ok(ToolResult::ok(text))
                     }
                     Ok(_) => Ok(ToolResult::ok("No results found.")),
@@ -231,7 +254,11 @@ pub async fn execute_tool(
                 .await?;
             let result = String::from_utf8_lossy(&output.stdout).to_string();
             let capped: String = result.chars().take(3000).collect();
-            Ok(ToolResult::ok(if capped.is_empty() { "No matches.".into() } else { capped }))
+            Ok(ToolResult::ok(if capped.is_empty() {
+                "No matches.".into()
+            } else {
+                capped
+            }))
         }
 
         "run_command" => {
@@ -258,12 +285,20 @@ pub async fn execute_tool(
                 .await?;
             let text = String::from_utf8_lossy(&output.stdout).to_string();
             let capped: String = text.chars().take(4000).collect();
-            Ok(ToolResult::ok(if capped.is_empty() { "No changes.".into() } else { capped }))
+            Ok(ToolResult::ok(if capped.is_empty() {
+                "No changes.".into()
+            } else {
+                capped
+            }))
         }
 
         "git_commit" => {
             let message = args["message"].as_str().unwrap_or("Auto-commit by Moses");
-            Command::new("git").args(["add", "-A"]).current_dir(&root).output().await?;
+            Command::new("git")
+                .args(["add", "-A"])
+                .current_dir(&root)
+                .output()
+                .await?;
             let output = Command::new("git")
                 .args(["commit", "-m", message])
                 .current_dir(&root)
@@ -280,5 +315,9 @@ pub async fn execute_tool(
 /// If the path is already absolute, use it directly.
 fn resolve_path(root: &std::path::Path, path: &str) -> PathBuf {
     let p = PathBuf::from(path);
-    if p.is_absolute() { p } else { root.join(path) }
+    if p.is_absolute() {
+        p
+    } else {
+        root.join(path)
+    }
 }

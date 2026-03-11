@@ -32,7 +32,8 @@ mod code_block_extraction {
 
     #[test]
     fn extracts_single_block() {
-        let text = "Here is the code:\n```rust\nfn main() {\n    println!(\"hello\");\n}\n```\nDone.";
+        let text =
+            "Here is the code:\n```rust\nfn main() {\n    println!(\"hello\");\n}\n```\nDone.";
         let blocks = extract_all_code_blocks(text);
         assert_eq!(blocks.len(), 1);
         assert_eq!(blocks[0].0, "rust");
@@ -132,16 +133,18 @@ mod file_path_inference {
         use std::path::Path;
         let p = Path::new(source_path);
         let stem = p.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
-        let ext  = p.extension().and_then(|s| s.to_str()).unwrap_or("txt");
-        let dir  = p.parent().map(|d| d.to_string_lossy().to_string())
-                    .unwrap_or_default();
+        let ext = p.extension().and_then(|s| s.to_str()).unwrap_or("txt");
+        let dir = p
+            .parent()
+            .map(|d| d.to_string_lossy().to_string())
+            .unwrap_or_default();
         match ext {
-            "rs"          => format!("{}/{}_test.rs", dir, stem),
-            "ts" | "tsx"  => format!("{}/{}.test.ts", dir, stem),
-            "js" | "jsx"  => format!("{}/{}.test.js", dir, stem),
-            "py"          => format!("{}/test_{}.py", dir, stem),
-            "go"          => format!("{}/{}_test.go", dir, stem),
-            _             => format!("{}/{}_test.{}", dir, stem, ext),
+            "rs" => format!("{}/{}_test.rs", dir, stem),
+            "ts" | "tsx" => format!("{}/{}.test.ts", dir, stem),
+            "js" | "jsx" => format!("{}/{}.test.js", dir, stem),
+            "py" => format!("{}/test_{}.py", dir, stem),
+            "go" => format!("{}/{}_test.go", dir, stem),
+            _ => format!("{}/{}_test.{}", dir, stem, ext),
         }
     }
 
@@ -212,7 +215,10 @@ mod chunking {
 
     #[test]
     fn chunks_large_file_into_multiple() {
-        let content = (0..200).map(|i| format!("line {}", i)).collect::<Vec<_>>().join("\n");
+        let content = (0..200)
+            .map(|i| format!("line {}", i))
+            .collect::<Vec<_>>()
+            .join("\n");
         let chunks = chunk_by_lines(&content, "big.rs", 60);
         assert!(chunks.len() >= 3);
         assert_eq!(chunks[0].line, 1);

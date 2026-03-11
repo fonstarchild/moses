@@ -3,28 +3,28 @@
 #![allow(dead_code, unused_variables)]
 
 mod agent;
-mod llm;
-mod workspace;
-mod patch;
-mod memory;
-mod security;
 mod bridge;
-mod setup;
+mod llm;
+mod memory;
+mod patch;
+mod security;
 mod settings;
+mod setup;
+mod workspace;
 
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use tauri::Manager;
-use agent::loop_::{AgentLoop, resolve_confirm};
+use agent::loop_::{resolve_confirm, AgentLoop};
 use agent::task::AgentTask;
 use llm::client::LlmClient;
-use workspace::file_tree::{FileNode, list_files};
-use workspace::indexer::WorkspaceIndexer;
-use workspace::vector_store::{VectorStore, SearchResult};
-use workspace::watcher::{start_watcher, WatcherHandle};
 use memory::long_term::{LongTermMemory, ProjectFact};
-use patch::apply::PatchEngine;
 use once_cell::sync::OnceCell;
+use patch::apply::PatchEngine;
+use std::sync::Arc;
+use tauri::Manager;
+use tokio::sync::Mutex;
+use workspace::file_tree::{list_files, FileNode};
+use workspace::indexer::WorkspaceIndexer;
+use workspace::vector_store::{SearchResult, VectorStore};
+use workspace::watcher::{start_watcher, WatcherHandle};
 
 static WORKSPACE: OnceCell<Arc<Mutex<String>>> = OnceCell::new();
 static MODEL: OnceCell<Arc<Mutex<String>>> = OnceCell::new();
@@ -36,11 +36,15 @@ fn get_watcher_slot() -> Arc<Mutex<Option<WatcherHandle>>> {
 }
 
 fn get_workspace() -> Arc<Mutex<String>> {
-    WORKSPACE.get_or_init(|| Arc::new(Mutex::new(String::new()))).clone()
+    WORKSPACE
+        .get_or_init(|| Arc::new(Mutex::new(String::new())))
+        .clone()
 }
 
 fn get_model() -> Arc<Mutex<String>> {
-    let saved = settings::load().model.unwrap_or_else(|| "deepseek-coder:6.7b".to_string());
+    let saved = settings::load()
+        .model
+        .unwrap_or_else(|| "deepseek-coder:6.7b".to_string());
     MODEL.get_or_init(|| Arc::new(Mutex::new(saved))).clone()
 }
 
@@ -49,7 +53,9 @@ async fn set_workspace(path: String, app: tauri::AppHandle) {
     *get_workspace().lock().await = path.clone();
     // Start file watcher for the new workspace
     match start_watcher(path, app).await {
-        Ok(handle) => { *get_watcher_slot().lock().await = Some(handle); }
+        Ok(handle) => {
+            *get_watcher_slot().lock().await = Some(handle);
+        }
         Err(e) => eprintln!("Watcher error: {}", e),
     }
 }
@@ -76,7 +82,9 @@ async fn save_workspace_setting(path: String) {
 
 #[tauri::command]
 async fn read_file(path: String) -> Result<String, String> {
-    tokio::fs::read_to_string(&path).await.map_err(|e| e.to_string())
+    tokio::fs::read_to_string(&path)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -120,11 +128,18 @@ async fn apply_patch_cmd(diff: String, workspace_root: String) -> Result<Vec<Str
 async fn index_workspace(root: String) -> Result<usize, String> {
     let indexer = WorkspaceIndexer::new(&root);
     let mut store = VectorStore::open(&root).map_err(|e| e.to_string())?;
-    indexer.index_all(&mut store).await.map_err(|e| e.to_string())
+    indexer
+        .index_all(&mut store)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-async fn search_workspace(root: String, query: String, top_k: usize) -> Result<Vec<SearchResult>, String> {
+async fn search_workspace(
+    root: String,
+    query: String,
+    top_k: usize,
+) -> Result<Vec<SearchResult>, String> {
     let store = VectorStore::open(&root).map_err(|e| e.to_string())?;
     store.search(&query, top_k).map_err(|e| e.to_string())
 }
@@ -142,9 +157,15 @@ async fn get_project_facts(root: String, category: String) -> Result<Vec<Project
 }
 
 #[tauri::command]
-async fn store_project_fact(root: String, key: String, value: String, category: String) -> Result<(), String> {
+async fn store_project_fact(
+    root: String,
+    key: String,
+    value: String,
+    category: String,
+) -> Result<(), String> {
     let mem = LongTermMemory::open(&root).map_err(|e| e.to_string())?;
-    mem.store_fact(&key, &value, &category).map_err(|e| e.to_string())
+    mem.store_fact(&key, &value, &category)
+        .map_err(|e| e.to_string())
 }
 
 /// Called by the frontend when user approves or denies a ConfirmAction request.
@@ -164,7 +185,9 @@ fn main() {
                 let tx = std::sync::Arc::new(std::sync::Mutex::new(Some(tx)));
                 let _unlisten = setup_handle.listen_global("setup-ready", move |_| {
                     if let Ok(mut guard) = tx.lock() {
-                        if let Some(tx) = guard.take() { let _ = tx.send(()); }
+                        if let Some(tx) = guard.take() {
+                            let _ = tx.send(());
+                        }
                     }
                 });
                 tokio::select! {
@@ -177,9 +200,14 @@ fn main() {
                     SETUP_DONE.store(true, std::sync::atomic::Ordering::SeqCst);
                 } else {
                     // Frontend reloaded — just tell it setup is already done
-                    setup_handle.emit_all("setup-progress", serde_json::json!({
-                        "step": "ready", "detail": "", "done": true, "error": null
-                    })).ok();
+                    setup_handle
+                        .emit_all(
+                            "setup-progress",
+                            serde_json::json!({
+                                "step": "ready", "detail": "", "done": true, "error": null
+                            }),
+                        )
+                        .ok();
                 }
             });
             // 2. VSCode WebSocket bridge

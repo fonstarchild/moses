@@ -13,7 +13,10 @@ pub struct ConversationMemory {
 
 impl ConversationMemory {
     pub fn new(max_tokens: usize) -> Self {
-        Self { messages: vec![], max_tokens }
+        Self {
+            messages: vec![],
+            max_tokens,
+        }
     }
 
     pub fn add_user_message(&mut self, content: &str) {

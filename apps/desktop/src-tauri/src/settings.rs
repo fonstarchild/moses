@@ -1,7 +1,7 @@
+use serde::{Deserialize, Serialize};
 /// Persistent settings — saved to ~/.moses/settings.json
 /// Stores: last model, last workspace path.
 use std::path::PathBuf;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Settings {

@@ -1,26 +1,40 @@
-use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager};
-use std::path::Path;
-use std::sync::{Arc, Mutex};
-use std::collections::HashMap;
-use tokio::sync::oneshot;
-use crate::llm::client::LlmClient;
 use crate::agent::task::AgentTask;
+use crate::llm::client::LlmClient;
 use crate::memory::short_term::ConversationMemory;
 use crate::workspace::file_tree::list_files;
 use crate::workspace::vector_store::VectorStore;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::Path;
+use std::sync::{Arc, Mutex};
+use tauri::{AppHandle, Manager};
+use tokio::sync::oneshot;
 
 // ── Events ────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "type")]
 pub enum AgentEvent {
-    Thinking      { content: String },
-    StreamToken   { token: String },
-    ConfirmWrite  { id: String, path: String, preview: String },
-    FileWritten   { path: String },
-    Done          { summary: String },
-    Error         { message: String },
+    Thinking {
+        content: String,
+    },
+    StreamToken {
+        token: String,
+    },
+    ConfirmWrite {
+        id: String,
+        path: String,
+        preview: String,
+    },
+    FileWritten {
+        path: String,
+    },
+    Done {
+        summary: String,
+    },
+    Error {
+        message: String,
+    },
 }
 
 // ── Permission gate ───────────────────────────────────────────────────────────
@@ -30,26 +44,38 @@ type PermMap = Arc<Mutex<HashMap<String, oneshot::Sender<bool>>>>;
 fn perm_map() -> PermMap {
     use once_cell::sync::OnceCell;
     static MAP: OnceCell<PermMap> = OnceCell::new();
-    MAP.get_or_init(|| Arc::new(Mutex::new(HashMap::new()))).clone()
+    MAP.get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
+        .clone()
 }
 
 pub fn resolve_confirm(id: &str, approved: bool) {
     if let Ok(mut map) = perm_map().lock() {
-        if let Some(tx) = map.remove(id) { let _ = tx.send(approved); }
+        if let Some(tx) = map.remove(id) {
+            let _ = tx.send(approved);
+        }
     }
 }
 
 async fn ask_write_permission(app: &AppHandle, id: &str, path: &str, preview: &str) -> bool {
     let (tx, rx) = oneshot::channel::<bool>();
-    { perm_map().lock().unwrap().insert(id.to_string(), tx); }
-    app.emit_all("agent-event", AgentEvent::ConfirmWrite {
-        id: id.to_string(),
-        path: path.to_string(),
-        preview: preview.chars().take(400).collect(),
-    }).ok();
+    {
+        perm_map().lock().unwrap().insert(id.to_string(), tx);
+    }
+    app.emit_all(
+        "agent-event",
+        AgentEvent::ConfirmWrite {
+            id: id.to_string(),
+            path: path.to_string(),
+            preview: preview.chars().take(400).collect(),
+        },
+    )
+    .ok();
     match tokio::time::timeout(std::time::Duration::from_secs(300), rx).await {
         Ok(Ok(v)) => v,
-        _ => { perm_map().lock().unwrap().remove(id); false }
+        _ => {
+            perm_map().lock().unwrap().remove(id);
+            false
+        }
     }
 }
 
@@ -63,15 +89,21 @@ pub struct AgentLoop {
 
 impl AgentLoop {
     pub fn new(llm: LlmClient, app: AppHandle) -> Self {
-        Self { llm, memory: ConversationMemory::new(128_000), app }
+        Self {
+            llm,
+            memory: ConversationMemory::new(128_000),
+            app,
+        }
     }
 
     pub async fn run(&mut self, task: AgentTask) -> Result<(), anyhow::Error> {
-        self.emit(AgentEvent::Thinking { content: "Reading project…".into() });
+        self.emit(AgentEvent::Thinking {
+            content: "Reading project…".into(),
+        });
 
         // ── 1. Gather context ─────────────────────────────────────────────────
-        let file_tree  = build_file_tree(&task.workspace_root);
-        let open_file  = read_open_file(&task).await;
+        let file_tree = build_file_tree(&task.workspace_root);
+        let open_file = read_open_file(&task).await;
         let search_ctx = semantic_search(&task.workspace_root, &task.prompt).await;
 
         // ── 2. Build user message — context + request, nothing else ───────────
@@ -83,7 +115,9 @@ impl AgentLoop {
         let messages = self.memory.to_messages();
         let app_clone = self.app.clone();
         let on_token = move |token: String| {
-            app_clone.emit_all("agent-event", AgentEvent::StreamToken { token }).ok();
+            app_clone
+                .emit_all("agent-event", AgentEvent::StreamToken { token })
+                .ok();
         };
 
         match self.llm.stream_text(&system, &messages, on_token).await {
@@ -105,9 +139,13 @@ impl AgentLoop {
                     }
                 }
 
-                self.emit(AgentEvent::Done { summary: String::new() });
+                self.emit(AgentEvent::Done {
+                    summary: String::new(),
+                });
             }
-            Err(e) => self.emit(AgentEvent::Error { message: e.to_string() }),
+            Err(e) => self.emit(AgentEvent::Error {
+                message: e.to_string(),
+            }),
         }
 
         Ok(())
@@ -129,12 +167,17 @@ fn build_system() -> String {
      and write complete, working code. \
      When you write a file, output its full content in a fenced code block. \
      Never truncate code with comments like '// ... rest unchanged'."
-    .to_string()
+        .to_string()
 }
 
 // ── User message builder ──────────────────────────────────────────────────────
 
-struct OpenFile { path: String, display: String, lang: &'static str, content: String }
+struct OpenFile {
+    path: String,
+    display: String,
+    lang: &'static str,
+    content: String,
+}
 
 fn build_user_message(
     task: &AgentTask,
@@ -146,19 +189,27 @@ fn build_user_message(
 
     // File tree — gives Moses project awareness
     if !file_tree.is_empty() {
-        msg.push_str(&format!("Project: {}\n```\n{}\n```\n\n", task.workspace_root, file_tree));
+        msg.push_str(&format!(
+            "Project: {}\n```\n{}\n```\n\n",
+            task.workspace_root, file_tree
+        ));
     }
 
     // Relevant code snippets from the index
     if !search_ctx.is_empty() {
-        msg.push_str(&format!("Relevant code in this project:\n```\n{}\n```\n\n", search_ctx));
+        msg.push_str(&format!(
+            "Relevant code in this project:\n```\n{}\n```\n\n",
+            search_ctx
+        ));
     }
 
     // The file the user is looking at
     if let Some(f) = open_file {
         msg.push_str(&format!(
             "Currently open: {}\n```{}\n{}\n```\n\n",
-            f.display, f.lang, f.content.trim()
+            f.display,
+            f.lang,
+            f.content.trim()
         ));
     }
 
@@ -187,7 +238,9 @@ fn render_tree(nodes: &[crate::workspace::file_tree::FileNode], depth: usize) ->
     for node in nodes {
         if node.is_dir {
             out.push_str(&format!("{}{}/\n", indent, node.name));
-            if let Some(ch) = &node.children { out.push_str(&render_tree(ch, depth + 1)); }
+            if let Some(ch) = &node.children {
+                out.push_str(&render_tree(ch, depth + 1));
+            }
         } else {
             out.push_str(&format!("{}{}\n", indent, node.name));
         }
@@ -238,21 +291,34 @@ fn find_file_candidates(
     open_file: &Option<OpenFile>,
 ) -> Vec<(String, String)> {
     let blocks = extract_all_code_blocks(response);
-    if blocks.is_empty() { return vec![]; }
+    if blocks.is_empty() {
+        return vec![];
+    }
 
     let p = task.prompt.to_lowercase();
-    let wants_new_file = p.contains("create") || p.contains("new file")
-        || p.contains("test file") || p.contains("generate") || p.contains("write a")
-        || p.contains("add a file") || p.contains("make a");
-    let wants_edit = p.contains("edit") || p.contains("fix") || p.contains("refactor")
-        || p.contains("update") || p.contains("add") || p.contains("change")
-        || p.contains("remove") || p.contains("implement");
+    let wants_new_file = p.contains("create")
+        || p.contains("new file")
+        || p.contains("test file")
+        || p.contains("generate")
+        || p.contains("write a")
+        || p.contains("add a file")
+        || p.contains("make a");
+    let wants_edit = p.contains("edit")
+        || p.contains("fix")
+        || p.contains("refactor")
+        || p.contains("update")
+        || p.contains("add")
+        || p.contains("change")
+        || p.contains("remove")
+        || p.contains("implement");
 
     let mut results = Vec::new();
 
     for (lang, content) in &blocks {
         // Skip tiny snippets — if it's less than 3 lines it's probably an example
-        if content.lines().count() < 3 { continue; }
+        if content.lines().count() < 3 {
+            continue;
+        }
 
         if wants_new_file {
             let path = infer_new_file_path(open_file, &task.workspace_root, &task.prompt, lang);
@@ -284,9 +350,11 @@ fn infer_new_file_path(
 
     // Did the user mention a filename directly? e.g. "create utils.ts"
     for word in prompt.split_whitespace() {
-        let w = word.trim_matches(|c: char| !c.is_alphanumeric() && c != '.' && c != '_' && c != '-');
+        let w =
+            word.trim_matches(|c: char| !c.is_alphanumeric() && c != '.' && c != '_' && c != '-');
         if w.contains('.') && !w.starts_with('.') && w.len() > 2 {
-            let dir = open_file.as_ref()
+            let dir = open_file
+                .as_ref()
                 .and_then(|f| Path::new(&f.path).parent())
                 .map(|d| d.to_string_lossy().to_string())
                 .unwrap_or_else(|| workspace_root.to_string());
@@ -296,32 +364,45 @@ fn infer_new_file_path(
 
     // Derive from open file + request type
     if let Some(f) = open_file {
-        let stem = Path::new(&f.path).file_stem()
-            .and_then(|s| s.to_str()).unwrap_or("file");
-        let ext = Path::new(&f.path).extension()
-            .and_then(|s| s.to_str()).unwrap_or(lang);
-        let dir = Path::new(&f.path).parent()
+        let stem = Path::new(&f.path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("file");
+        let ext = Path::new(&f.path)
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or(lang);
+        let dir = Path::new(&f.path)
+            .parent()
             .map(|d| d.to_string_lossy().to_string())
             .unwrap_or_else(|| workspace_root.to_string());
 
         if p.contains("test") {
             return match ext {
-                "rs"            => format!("{}/{}_test.rs", dir, stem),
-                "ts" | "tsx"    => format!("{}/{}.test.ts", dir, stem),
-                "js" | "jsx"    => format!("{}/{}.test.js", dir, stem),
-                "py"            => format!("{}/test_{}.py", dir, stem),
-                "go"            => format!("{}/{}_test.go", dir, stem),
-                _               => format!("{}/{}_test.{}", dir, stem, ext),
+                "rs" => format!("{}/{}_test.rs", dir, stem),
+                "ts" | "tsx" => format!("{}/{}.test.ts", dir, stem),
+                "js" | "jsx" => format!("{}/{}.test.js", dir, stem),
+                "py" => format!("{}/test_{}.py", dir, stem),
+                "go" => format!("{}/{}_test.go", dir, stem),
+                _ => format!("{}/{}_test.{}", dir, stem, ext),
             };
         }
 
         // Generic new file next to the open one
-        let new_ext = if lang.is_empty() { ext } else { lang_to_ext(lang) };
+        let new_ext = if lang.is_empty() {
+            ext
+        } else {
+            lang_to_ext(lang)
+        };
         return format!("{}/new_{}.{}", dir, stem, new_ext);
     }
 
     // No open file — put it at workspace root
-    let ext = if lang.is_empty() { "txt" } else { lang_to_ext(lang) };
+    let ext = if lang.is_empty() {
+        "txt"
+    } else {
+        lang_to_ext(lang)
+    };
     format!("{}/new_file.{}", workspace_root, ext)
 }
 
@@ -360,34 +441,47 @@ fn extract_all_code_blocks(text: &str) -> Vec<(String, String)> {
 
 fn ext_to_lang(ext: &str) -> &'static str {
     match ext {
-        "rs" => "rust", "ts"|"tsx" => "typescript", "js"|"jsx" => "javascript",
-        "py" => "python", "go" => "go", "cpp"|"cc"|"cxx" => "cpp", "c" => "c",
-        "cs" => "csharp", "java" => "java", "sh" => "bash", "toml" => "toml",
-        "json" => "json", "yaml"|"yml" => "yaml", "md" => "markdown",
-        "html" => "html", "css" => "css", "sql" => "sql", _ => "",
+        "rs" => "rust",
+        "ts" | "tsx" => "typescript",
+        "js" | "jsx" => "javascript",
+        "py" => "python",
+        "go" => "go",
+        "cpp" | "cc" | "cxx" => "cpp",
+        "c" => "c",
+        "cs" => "csharp",
+        "java" => "java",
+        "sh" => "bash",
+        "toml" => "toml",
+        "json" => "json",
+        "yaml" | "yml" => "yaml",
+        "md" => "markdown",
+        "html" => "html",
+        "css" => "css",
+        "sql" => "sql",
+        _ => "",
     }
 }
 
 fn lang_to_ext(lang: &str) -> &'static str {
     match lang {
-        "rust"       => "rs",
+        "rust" => "rs",
         "typescript" => "ts",
         "javascript" => "js",
-        "python"     => "py",
-        "go"         => "go",
-        "cpp"|"c++"  => "cpp",
-        "c"          => "c",
-        "csharp"     => "cs",
-        "java"       => "java",
-        "bash"|"sh"  => "sh",
-        "toml"       => "toml",
-        "json"       => "json",
-        "yaml"       => "yaml",
-        "markdown"   => "md",
-        "html"       => "html",
-        "css"        => "css",
-        "sql"        => "sql",
-        _            => "txt",
+        "python" => "py",
+        "go" => "go",
+        "cpp" | "c++" => "cpp",
+        "c" => "c",
+        "csharp" => "cs",
+        "java" => "java",
+        "bash" | "sh" => "sh",
+        "toml" => "toml",
+        "json" => "json",
+        "yaml" => "yaml",
+        "markdown" => "md",
+        "html" => "html",
+        "css" => "css",
+        "sql" => "sql",
+        _ => "txt",
     }
 }
 

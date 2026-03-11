@@ -10,8 +10,16 @@ pub struct FileNode {
 }
 
 const IGNORED: &[&str] = &[
-    ".git", "node_modules", "target", "__pycache__", ".next",
-    "dist", "build", ".venv", "venv", ".moses",
+    ".git",
+    "node_modules",
+    "target",
+    "__pycache__",
+    ".next",
+    "dist",
+    "build",
+    ".venv",
+    "venv",
+    ".moses",
 ];
 
 pub fn list_files(root: &str, max_depth: usize) -> Result<Vec<FileNode>, anyhow::Error> {
@@ -56,12 +64,10 @@ fn list_dir(
         })
         .collect();
 
-    entries.sort_by(|a, b| {
-        match (a.is_dir, b.is_dir) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.name.cmp(&b.name),
-        }
+    entries.sort_by(|a, b| match (a.is_dir, b.is_dir) {
+        (true, false) => std::cmp::Ordering::Less,
+        (false, true) => std::cmp::Ordering::Greater,
+        _ => a.name.cmp(&b.name),
     });
 
     Ok(entries)
