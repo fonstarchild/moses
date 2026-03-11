@@ -10,6 +10,9 @@ on:
         description: "Version tag (e.g. v0.2.0)"
         required: true
 
+permissions:
+  contents: write
+
 jobs:
   # ── Tests must pass before we build ────────────────────────────────────────
   test:
