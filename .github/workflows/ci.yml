@@ -64,4 +64,4 @@ jobs:
 
       - name: Type-check
         working-directory: apps/desktop
-        run: npx tsc --noEmit
+        run: ./node_modules/.bin/tsc --noEmit
