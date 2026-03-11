@@ -55,12 +55,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: apps/desktop/package-lock.json
 
       - name: Install dependencies
         working-directory: apps/desktop
-        run: npm ci
+        run: npm install
 
       - name: Type-check
         working-directory: apps/desktop
