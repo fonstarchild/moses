@@ -56,10 +56,14 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Install dependencies
-        working-directory: apps/desktop
-        run: npm install
+        run: pnpm install
 
       - name: Type-check
         working-directory: apps/desktop
-        run: npm run typecheck
+        run: pnpm run typecheck
