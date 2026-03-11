@@ -1,0 +1,66 @@
+{
+  "name": "vscode-moses",
+  "displayName": "Moses - Local AI Assistant",
+  "description": "Local AI coding assistant powered by DeepSeek",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["AI", "Programming Languages"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "moses.openPanel",
+        "title": "Moses: Open Chat Panel"
+      },
+      {
+        "command": "moses.askAboutSelection",
+        "title": "Moses: Explain Selection"
+      },
+      {
+        "command": "moses.refactorSelection",
+        "title": "Moses: Refactor Selection"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "moses.openPanel",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m"
+      },
+      {
+        "command": "moses.askAboutSelection",
+        "key": "ctrl+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorHasSelection"
+      }
+    ],
+    "configuration": {
+      "title": "Moses",
+      "properties": {
+        "moses.port": {
+          "type": "number",
+          "default": 43210,
+          "description": "Port for Moses WebSocket bridge"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@types/ws": "^8.5.0",
+    "@vscode/vsce": "^2.24.0",
+    "typescript": "^5.4.0"
+  }
+}

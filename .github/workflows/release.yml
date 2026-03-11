@@ -1,0 +1,164 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"           # triggers on v0.1.0, v1.2.3, etc.
+  workflow_dispatch:   # allows manual trigger from GitHub UI
+    inputs:
+      tag:
+        description: "Version tag (e.g. v0.2.0)"
+        required: true
+
+jobs:
+  # ── Tests must pass before we build ────────────────────────────────────────
+  test:
+    name: Tests
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+
+      - name: Install Linux system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.0-dev libssl-dev \
+            libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev patchelf
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Rust clippy
+        working-directory: apps/desktop/src-tauri
+        run: cargo clippy -- -D warnings
+
+      - name: Rust tests
+        working-directory: apps/desktop/src-tauri
+        run: cargo test
+
+      - name: Frontend type-check
+        working-directory: apps/desktop
+        run: npx tsc --noEmit
+
+  # ── Cross-platform build ────────────────────────────────────────────────────
+  build:
+    name: Build ${{ matrix.label }}
+    needs: test          # only build if tests pass
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest   # Apple Silicon
+            target: aarch64-apple-darwin
+            label: macos-arm64
+          - os: macos-13       # Intel Mac
+            target: x86_64-apple-darwin
+            label: macos-x64
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            label: linux-x64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            label: windows-x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/desktop/package-lock.json
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+
+      - name: Install Linux system deps
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.0-dev libssl-dev \
+            libgtk-3-dev libayatana-appindicator3-dev \
+            librsvg2-dev patchelf
+
+      - name: Install frontend dependencies
+        working-directory: apps/desktop
+        run: npm ci
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Uncomment + add secrets to enable macOS code signing:
+          # APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          # APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          # APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: "Moses ${{ github.ref_name }}"
+          releaseBody: |
+            ## Moses ${{ github.ref_name }}
+
+            A free, local AI coding assistant. No cloud. No subscriptions. Runs 100% on your machine.
+
+            ---
+
+            ### Download
+
+            | Platform | Installer |
+            |----------|-----------|
+            | macOS (Apple Silicon) | `Moses_*_aarch64.dmg` |
+            | macOS (Intel) | `Moses_*_x64.dmg` |
+            | Linux | `Moses_*_amd64.AppImage` or `Moses_*_amd64.deb` |
+            | Windows | `Moses_*_x64-setup.exe` |
+
+            ### First launch
+
+            Moses automatically:
+            1. Installs [Ollama](https://ollama.com) if it isn't already installed
+            2. Downloads the AI model (~4 GB, one-time)
+            3. Opens the editor — no terminal, no config needed
+
+            Just open the app and wait for the setup screen to finish.
+
+            ---
+
+            ### What's new
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          releaseDraft: true
+          prerelease: false
+          args: --target ${{ matrix.target }}

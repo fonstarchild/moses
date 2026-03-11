@@ -1,0 +1,8 @@
+node_modules/
+target/
+dist/
+.turbo/
+*.vsix
+out/
+.DS_Store
+apps/desktop/src-tauri/target/
