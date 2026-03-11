@@ -2,7 +2,18 @@ import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/tauri';
 
 interface FileNode {
-  
+  Run pnpm install
+ ERROR  bad indentation of a mapping entry (14:7)
+
+ 11 |  278 |       settings.set_enable_webg ...
+ 12 |      |                ^^^^^^^^^^^^^^^^
+ 13 |      |
+ 14 |     ::: /home/runner/.cargo/registry/ ...
+------------^
+ 15 |      |
+ 16 | 1222 |   fn set_enable_webgl(&self, e ...
+For help, run: pnpm help install
+Error: Process completed with exit code 1.
   name: string;
   path: string;
   is_dir: boolean;
