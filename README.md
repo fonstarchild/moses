@@ -39,8 +39,8 @@ Get the installer for your OS from the [Releases page](../../releases) and run i
 
 | Platform | Installer | Notes |
 |----------|-----------|-------|
-| **macOS** (Apple Silicon) | `Moses_*_aarch64.dmg` | Open DMG → drag to Applications |
-| **macOS** (Intel) | `Moses_*_x64.dmg` | Open DMG → drag to Applications |
+| **macOS** (Apple Silicon) | `Moses_*_aarch64.dmg` | Open DMG → drag to Applications → [see note below](#macos-note) |
+| **macOS** (Intel) | `Moses_*_x64.dmg` | Open DMG → drag to Applications → [see note below](#macos-note) |
 | **Linux** | `Moses_*_amd64.AppImage` | Make executable → double-click |
 | **Linux** (Debian/Ubuntu) | `Moses_*_amd64.deb` | `sudo dpkg -i Moses_*.deb` |
 | **Windows** | `Moses_*_x64-setup.exe` | Run installer → launch from Start |
@@ -51,6 +51,20 @@ Get the installer for your OS from the [Releases page](../../releases) and run i
 3. Opens the main editor, ready to use
 
 No terminal. No config. No account. Just open the app.
+
+#### macOS note
+
+Because Moses is not yet notarized with Apple, macOS may say **"the image is damaged"** or block the app on first launch. This is a Gatekeeper warning, not actual damage.
+
+**Fix — one of these:**
+
+- Right-click the app → **Open** → **Open anyway**
+- Or run this once in Terminal after dragging to Applications:
+  ```bash
+  xattr -cr /Applications/Moses.app
+  ```
+
+Then double-click normally. You won't need to do this again.
 
 ---
 
@@ -113,8 +127,8 @@ Everything runs locally. Your code never leaves your machine.
 
 > **Linux only:** install system dependencies first:
 > ```bash
-> sudo apt-get install libwebkit2gtk-4.0-dev libssl-dev libgtk-3-dev \
->   libayatana-appindicator3-dev librsvg2-dev patchelf
+> sudo apt-get install libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev \
+>   libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 > ```
 
 ### Run in dev mode
@@ -124,10 +138,8 @@ Everything runs locally. Your code never leaves your machine.
 git clone https://github.com/your-org/moses.git
 cd moses
 
-# 2. Install frontend dependencies
-cd apps/desktop
-npm install
-cd ../..
+# 2. Install frontend dependencies (from repo root)
+pnpm install
 
 # 3. Launch everything with one command
 bash start.sh
@@ -151,7 +163,7 @@ cargo test
 
 # Type-check the frontend (no emit)
 cd apps/desktop
-npx tsc --noEmit
+pnpm run typecheck
 
 # Fast Rust compile check (no linking)
 cd apps/desktop/src-tauri
@@ -163,7 +175,7 @@ cargo clippy
 
 # Build a release binary for your current OS
 cd apps/desktop
-npx tauri build
+pnpm tauri build
 # Output: apps/desktop/src-tauri/target/release/bundle/
 ```
 
@@ -275,7 +287,7 @@ Moses is a **free, offline, privacy-respecting coding assistant**. Every contrib
 3. **Run checks locally:**
    ```bash
    cd apps/desktop/src-tauri && cargo test && cargo clippy
-   cd apps/desktop && npx tsc --noEmit
+   cd apps/desktop && pnpm run typecheck
    ```
 4. **Open a PR** with a clear description of what changed and why
 

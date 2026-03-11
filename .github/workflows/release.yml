@@ -152,6 +152,9 @@ jobs:
 
             ### First launch
 
+            > **macOS users:** Right-click the `.dmg` → Open → Open anyway (required on first launch because the app is not yet notarized).
+            > Or run: `xattr -cr /Applications/Moses.app`
+
             Moses automatically:
             1. Installs [Ollama](https://ollama.com) if it isn't already installed
             2. Downloads the AI model (~4 GB, one-time)
