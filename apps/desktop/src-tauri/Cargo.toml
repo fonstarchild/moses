@@ -26,9 +26,4 @@ notify = "6"
 [features]
 custom-protocol = ["tauri/custom-protocol"]
 
-# On Linux, force webkit2gtk to enable v2_2 feature so SettingsExt is in scope.
-# webkit2gtk 0.18.2 requires this feature for the trait to be re-exported,
-# fixing a compile error in wry 0.24.x on ubuntu-22.04.
-[target.'cfg(target_os = "linux")'.dependencies]
-webkit2gtk = { version = "0.18", features = ["v2_22"] }
 

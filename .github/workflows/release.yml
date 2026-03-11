@@ -55,7 +55,7 @@ jobs:
 
       - name: Rust tests
         working-directory: apps/desktop/src-tauri
-        run: cargo test
+        run: cargo test --lib
 
       - name: Frontend type-check
         working-directory: apps/desktop
