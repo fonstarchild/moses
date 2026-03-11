@@ -25,3 +25,4 @@ notify = "6"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
+
