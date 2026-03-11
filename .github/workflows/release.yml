@@ -129,10 +129,10 @@ jobs:
         with:
           projectPath: apps/desktop
           packageManager: pnpm
-          tagName: ${{ github.ref_name }}
-          releaseName: "Moses ${{ github.ref_name }}"
+          tagName: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          releaseName: "Moses ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
           releaseBody: |
-            ## Moses ${{ github.ref_name }}
+            ## Moses ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
             A free, local AI coding assistant. No cloud. No subscriptions. Runs 100% on your machine.
 

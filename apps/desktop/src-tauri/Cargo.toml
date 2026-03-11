@@ -26,4 +26,7 @@ notify = "6"
 [features]
 custom-protocol = ["tauri/custom-protocol"]
 
+[patch.crates-io]
+webkit2gtk = { git = "https://github.com/gtk-rs/webkit2gtk-rs", tag = "webkit2gtk-rs-v0.18.1" }
+
 
