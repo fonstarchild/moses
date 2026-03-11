@@ -59,40 +59,38 @@ pub async fn start_bridge(port: u16, app: AppHandle) -> Result<(), anyhow::Error
     let tx_clone = tx.clone();
     let app_clone = app.clone();
     app_clone.listen("agent-event", move |event| {
-        {
-            let payload = event.payload();
-            if let Ok(v) = serde_json::from_str::<serde_json::Value>(payload) {
-                let out = match v["type"].as_str() {
-                    Some("StreamToken") => Some(BridgeOut::Token {
-                        content: v["token"].as_str().unwrap_or_default().to_string(),
-                    }),
-                    Some("PatchProposed") => {
-                        let files = v["files"]
-                            .as_array()
-                            .map(|a| {
-                                a.iter()
-                                    .filter_map(|x| x.as_str().map(String::from))
-                                    .collect()
-                            })
-                            .unwrap_or_default();
-                        Some(BridgeOut::PatchProposal {
-                            diff: v["diff"].as_str().unwrap_or_default().to_string(),
-                            files,
+        let payload = event.payload();
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(payload) {
+            let out = match v["type"].as_str() {
+                Some("StreamToken") => Some(BridgeOut::Token {
+                    content: v["token"].as_str().unwrap_or_default().to_string(),
+                }),
+                Some("PatchProposed") => {
+                    let files = v["files"]
+                        .as_array()
+                        .map(|a| {
+                            a.iter()
+                                .filter_map(|x| x.as_str().map(String::from))
+                                .collect()
                         })
-                    }
-                    Some("ToolCall") => Some(BridgeOut::ToolActivity {
-                        name: v["name"].as_str().unwrap_or_default().to_string(),
-                        status: "running".to_string(),
-                    }),
-                    Some("Done") => Some(BridgeOut::Done),
-                    Some("Error") => Some(BridgeOut::Error {
-                        message: v["message"].as_str().unwrap_or_default().to_string(),
-                    }),
-                    _ => None,
-                };
-                if let Some(msg) = out {
-                    tx_clone.send(msg).ok();
+                        .unwrap_or_default();
+                    Some(BridgeOut::PatchProposal {
+                        diff: v["diff"].as_str().unwrap_or_default().to_string(),
+                        files,
+                    })
                 }
+                Some("ToolCall") => Some(BridgeOut::ToolActivity {
+                    name: v["name"].as_str().unwrap_or_default().to_string(),
+                    status: "running".to_string(),
+                }),
+                Some("Done") => Some(BridgeOut::Done),
+                Some("Error") => Some(BridgeOut::Error {
+                    message: v["message"].as_str().unwrap_or_default().to_string(),
+                }),
+                _ => None,
+            };
+            if let Some(msg) = out {
+                tx_clone.send(msg).ok();
             }
         }
     });
