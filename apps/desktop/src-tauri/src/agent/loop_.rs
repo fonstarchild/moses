@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter};
 use tokio::sync::oneshot;
 
 // ── Events ────────────────────────────────────────────────────────────────────
@@ -61,7 +61,7 @@ async fn ask_write_permission(app: &AppHandle, id: &str, path: &str, preview: &s
     {
         perm_map().lock().unwrap().insert(id.to_string(), tx);
     }
-    app.emit_all(
+    app.emit(
         "agent-event",
         AgentEvent::ConfirmWrite {
             id: id.to_string(),
@@ -116,7 +116,7 @@ impl AgentLoop {
         let app_clone = self.app.clone();
         let on_token = move |token: String| {
             app_clone
-                .emit_all("agent-event", AgentEvent::StreamToken { token })
+                .emit("agent-event", AgentEvent::StreamToken { token })
                 .ok();
         };
 
@@ -152,7 +152,7 @@ impl AgentLoop {
     }
 
     fn emit(&self, event: AgentEvent) {
-        self.app.emit_all("agent-event", &event).ok();
+        self.app.emit("agent-event", &event).ok();
     }
 }
 

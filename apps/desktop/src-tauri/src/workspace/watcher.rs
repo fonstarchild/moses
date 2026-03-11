@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, Mutex};
 
 const DEBOUNCE_MS: u64 = 800; // wait 800ms after last change before re-indexing
@@ -120,7 +120,7 @@ pub async fn start_watcher(
                                 .to_string();
                             store.clear_file(&rel).ok();
                             app_clone
-                                .emit_all(
+                                .emit(
                                     "file-changed",
                                     WatchEvent {
                                         kind: "deleted".into(),
@@ -156,7 +156,7 @@ async fn reindex_file(path: &std::path::Path, root: &str, app: &AppHandle) {
 
     let kind = if path.exists() { "modified" } else { "created" };
 
-    app.emit_all(
+    app.emit(
         "file-changed",
         WatchEvent {
             kind: kind.into(),

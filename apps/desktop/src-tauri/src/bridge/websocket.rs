@@ -2,7 +2,7 @@ use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Listener};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::broadcast;
 use tokio_tungstenite::accept_async;
@@ -58,8 +58,9 @@ pub async fn start_bridge(port: u16, app: AppHandle) -> Result<(), anyhow::Error
     // subscribe to tauri agent events and forward them to bridge
     let tx_clone = tx.clone();
     let app_clone = app.clone();
-    app_clone.listen_global("agent-event", move |event| {
-        if let Some(payload) = event.payload() {
+    app_clone.listen("agent-event", move |event| {
+        {
+            let payload = event.payload();
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(payload) {
                 let out = match v["type"].as_str() {
                     Some("StreamToken") => Some(BridgeOut::Token {

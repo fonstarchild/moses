@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import { AgentEvent, useAgentStore } from '../../store';
 import mosesLogo from '../../assets/moses.png';
 

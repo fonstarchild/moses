@@ -19,7 +19,7 @@ use memory::long_term::{LongTermMemory, ProjectFact};
 use once_cell::sync::OnceCell;
 use patch::apply::PatchEngine;
 use std::sync::Arc;
-use tauri::Manager;
+use tauri::Emitter;
 use tokio::sync::Mutex;
 use workspace::file_tree::{list_files, FileNode};
 use workspace::indexer::WorkspaceIndexer;
@@ -174,43 +174,30 @@ fn confirm_action(id: String, approved: bool) {
     resolve_confirm(&id, approved);
 }
 
+/// Called by the frontend once its event listener is registered and ready.
+#[tauri::command]
+async fn start_setup(app: tauri::AppHandle) {
+    if !SETUP_DONE.load(std::sync::atomic::Ordering::SeqCst) {
+        setup::run(app.clone()).await;
+        SETUP_DONE.store(true, std::sync::atomic::Ordering::SeqCst);
+    } else {
+        // Frontend reloaded — tell it setup is already done
+        app.emit(
+            "setup-progress",
+            serde_json::json!({ "step": "ready", "detail": "", "done": true, "error": null }),
+        )
+        .ok();
+    }
+}
+
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .setup(|app| {
-            let handle = app.handle();
-            // 1. Auto-setup: wait for frontend to signal it's ready, then run ONCE
-            let setup_handle = handle.clone();
-            tauri::async_runtime::spawn(async move {
-                let (tx, mut rx) = tokio::sync::oneshot::channel::<()>();
-                let tx = std::sync::Arc::new(std::sync::Mutex::new(Some(tx)));
-                let _unlisten = setup_handle.listen_global("setup-ready", move |_| {
-                    if let Ok(mut guard) = tx.lock() {
-                        if let Some(tx) = guard.take() {
-                            let _ = tx.send(());
-                        }
-                    }
-                });
-                tokio::select! {
-                    _ = &mut rx => {}
-                    _ = tokio::time::sleep(std::time::Duration::from_secs(3)) => {}
-                }
-                // Only run setup once per app lifetime — skip on frontend reload
-                if !SETUP_DONE.load(std::sync::atomic::Ordering::SeqCst) {
-                    setup::run(setup_handle.clone()).await;
-                    SETUP_DONE.store(true, std::sync::atomic::Ordering::SeqCst);
-                } else {
-                    // Frontend reloaded — just tell it setup is already done
-                    setup_handle
-                        .emit_all(
-                            "setup-progress",
-                            serde_json::json!({
-                                "step": "ready", "detail": "", "done": true, "error": null
-                            }),
-                        )
-                        .ok();
-                }
-            });
-            // 2. VSCode WebSocket bridge
+            let handle = app.handle().clone();
+            // VSCode WebSocket bridge
             let bridge_handle = handle.clone();
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = bridge::websocket::start_bridge(43210, bridge_handle).await {
@@ -236,6 +223,7 @@ fn main() {
             load_settings,
             save_workspace_setting,
             confirm_action,
+            start_setup,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Moses");

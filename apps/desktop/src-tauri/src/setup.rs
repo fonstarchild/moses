@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 /// Emits "setup-progress" events to the frontend throughout.
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter};
 use tokio::process::Command;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,7 +17,7 @@ pub struct SetupProgress {
 
 impl SetupProgress {
     fn emit(app: &AppHandle, step: &str, detail: &str) {
-        app.emit_all(
+        app.emit(
             "setup-progress",
             Self {
                 step: step.into(),
@@ -30,7 +30,7 @@ impl SetupProgress {
     }
 
     fn complete(app: &AppHandle) {
-        app.emit_all(
+        app.emit(
             "setup-progress",
             Self {
                 step: "Ready".into(),
@@ -43,7 +43,7 @@ impl SetupProgress {
     }
 
     fn fail(app: &AppHandle, step: &str, err: &str) {
-        app.emit_all(
+        app.emit(
             "setup-progress",
             Self {
                 step: step.into(),

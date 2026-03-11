@@ -6,10 +6,13 @@ authors = ["Moses Team"]
 edition = "2021"
 
 [build-dependencies]
-tauri-build = { version = "1", features = [] }
+tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "1", features = ["dialog-open", "fs-read-file", "fs-write-file", "fs-read-dir", "fs-create-dir", "fs-exists", "shell-open"] }
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
@@ -25,8 +28,3 @@ notify = "6"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
-
-[patch.crates-io]
-webkit2gtk = { git = "https://github.com/gtk-rs/webkit2gtk-rs", tag = "webkit2gtk-rs-v0.18.1" }
-
-

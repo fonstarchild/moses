@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { listen, emit } from '@tauri-apps/api/event';
-import { invoke } from '@tauri-apps/api/tauri';
-import { open } from '@tauri-apps/api/dialog';
+import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
 import Editor from '@monaco-editor/react';
 import { useAgentStore } from './store';
 import { ChatPanel } from './components/Chat/ChatPanel';
@@ -45,7 +45,7 @@ export default function App() {
         return p;
       });
     });
-    unlisten.then(() => emit('setup-ready'));
+    unlisten.then(() => invoke('start_setup').catch(console.error));
     return () => { unlisten.then(f => f()); };
   }, []);
 
